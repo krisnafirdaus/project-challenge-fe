@@ -1,14 +1,46 @@
 "use client";
 
-import React from "react";
+import React, {useState} from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { addUser } from "../slices/usersSlice";
 
+interface SnackbarState {
+  visible: boolean;
+  message: string;
+}
+
+
 const UserForm: React.FC = () => {
   const dispatch = useDispatch();
+
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    visible: false,
+    message: '',
+  });
+
+  const closeSnackbar = () => {
+    setSnackbar({
+      visible: false,
+      message: '',
+    });
+  };
+  
+  const showSnackbar = (message: string) => {
+    setSnackbar({
+      visible: true,
+      message: message,
+    });
+  
+    // Timer untuk otomatis menutup snackbar setelah 3 detik
+    setTimeout(() => {
+      closeSnackbar();
+    }, 3000);
+  };
+  
+  
 
   const formik = useFormik({
     initialValues: {
@@ -35,13 +67,23 @@ const UserForm: React.FC = () => {
         dispatch(addUser(values));
         resetForm();
       } catch (error) {
-        console.error("There was an error creating the user:", error);
+        if(axios.isAxiosError(error)){
+          if (error.response && error.response.status === 400) {
+            showSnackbar(error.response.data.message)
+          }
+        }
       }
     },
   });
 
   return (
     <form onSubmit={formik.handleSubmit} className="space-y-4">
+      {snackbar.visible && (
+          <div className="flex items-center justify-between mb-4 mr-4 p-4 rounded bg-red-600 text-white z-50">
+            <p>{snackbar.message}</p>
+            <button onClick={closeSnackbar} className="text-lg font-bold">&times;</button>
+          </div>
+        )}
       <div className="flex flex-col">
         <label htmlFor="username" className="text-lg">
           Username
